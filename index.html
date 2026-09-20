@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>行情看板</title>
     <style>
         :root {
@@ -123,6 +123,30 @@
         .tab.active { color: var(--text); border-bottom-color: var(--accent); }
         .tab-badge { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-left: 4px; }
 
+        /* Sort Bar */
+        .sort-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px 20px 0;
+            max-width: 100%;
+        }
+        .sort-label { font-size: 11px; color: var(--text-muted); }
+        .sort-btn {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            border-radius: 999px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .sort-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .sort-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
         /* Stock List */
         .stock-list { padding: 4px 0 24px; }
 
@@ -239,6 +263,8 @@
         @media (max-width: 640px) {
             .header { padding: 10px 16px; }
             .tabs { padding: 0 16px; gap: 20px; }
+            .sort-bar { padding: 8px 16px 0; gap: 6px; }
+            .sort-btn { padding: 3px 10px; font-size: 11px; }
             .stock-row { padding: 12px 16px; }
             .metrics-grid { gap: 4px 6px; }
             .metric-value { font-size: 11px; }
@@ -267,37 +293,55 @@
     </header>
 
     <nav class="tabs">
-        <button class="tab active" onclick="switchTab('a')" id="tabA">A股/港股<span class="tab-badge" id="badgeA">10</span></button>
-        <button class="tab" onclick="switchTab('us')" id="tabUs">美股<span class="tab-badge" id="badgeUs">17</span></button>
+        <button class="tab active" onclick="switchGroup('all')" id="tabAll">总<span class="tab-badge" id="badgeAll"></span></button>
+        <button class="tab" onclick="switchGroup('a')" id="tabA">A股<span class="tab-badge" id="badgeA"></span></button>
+        <button class="tab" onclick="switchGroup('h')" id="tabH">H股<span class="tab-badge" id="badgeH"></span></button>
+        <button class="tab" onclick="switchGroup('us')" id="tabUs">美股<span class="tab-badge" id="badgeUs"></span></button>
     </nav>
 
-    <div id="panelA">
-        <div class="stock-list" id="listA"></div>
-        <div class="loading-state hidden" id="loadingA">
-            <div class="loading-spinner"></div><p>加载中...</p>
-        </div>
+    <div class="sort-bar">
+        <span class="sort-label">排序</span>
+        <button class="sort-btn active" onclick="setSort('drawdown')" id="sortDrawdown">距1年高</button>
+        <button class="sort-btn" onclick="setSort('rally')" id="sortRally">距1年低</button>
+        <button class="sort-btn" onclick="setSort('ytd')" id="sortYtd">今年来</button>
+        <button class="sort-btn" onclick="setSort('pe')" id="sortPe">PE</button>
     </div>
 
-    <div id="panelUs" class="hidden">
-        <div class="stock-list" id="listUs"></div>
-        <div class="loading-state hidden" id="loadingUs">
-            <div class="loading-spinner"></div><p>加载中...</p>
-        </div>
+    <div class="stock-list" id="stockList"></div>
+    <div class="loading-state hidden" id="loadingBox">
+        <div class="loading-spinner"></div><p>加载中...</p>
     </div>
 
     <footer class="footer">数据来源：腾讯财经 · 仅供参考</footer>
 
     <script>
-        let currentTab = 'a';
+        let currentGroup = 'all';
+        let currentSort = 'drawdown';
         let aShareData = null;
         let usStockData = null;
+        let errorA = false;
+        let errorUs = false;
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.getElementById('tabA').classList.toggle('active', tab === 'a');
-            document.getElementById('tabUs').classList.toggle('active', tab === 'us');
-            document.getElementById('panelA').classList.toggle('hidden', tab !== 'a');
-            document.getElementById('panelUs').classList.toggle('hidden', tab !== 'us');
+        function esc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function switchGroup(g) {
+            currentGroup = g;
+            document.getElementById('tabAll').classList.toggle('active', g === 'all');
+            document.getElementById('tabA').classList.toggle('active', g === 'a');
+            document.getElementById('tabH').classList.toggle('active', g === 'h');
+            document.getElementById('tabUs').classList.toggle('active', g === 'us');
+            renderCurrent();
+        }
+
+        function setSort(k) {
+            currentSort = k;
+            document.getElementById('sortDrawdown').classList.toggle('active', k === 'drawdown');
+            document.getElementById('sortRally').classList.toggle('active', k === 'rally');
+            document.getElementById('sortYtd').classList.toggle('active', k === 'ytd');
+            document.getElementById('sortPe').classList.toggle('active', k === 'pe');
+            renderCurrent();
         }
 
         function fmtNum(val, d = 2) {
@@ -322,31 +366,72 @@
             return Math.max(0, Math.min(100, (price - low) / (high - low) * 100));
         }
 
-        // 按距1年高点回撤排序：回撤最大（最负）的在前，无数据的排最后
-        function sortByDrawdown(stocks) {
+        // 当前分组的数据集合：总=A股+H股+美股合并，其余按市场过滤
+        function currentStocks() {
+            let list = [];
+            if (aShareData) {
+                if (currentGroup === 'all') list = list.concat(aShareData.stocks);
+                else if (currentGroup === 'a') list = aShareData.stocks.filter(s => s.market === 'A股');
+                else if (currentGroup === 'h') list = aShareData.stocks.filter(s => s.market === '港股');
+            }
+            if (usStockData && (currentGroup === 'all' || currentGroup === 'us')) {
+                list = list.concat(usStockData.stocks);
+            }
+            return list;
+        }
+
+        // 排序：距1年高=回撤最深在前；距1年低=距低涨幅最大在前；今年来/PE 降序/升序；无数据一律排最后
+        const SORT_FIELD = { drawdown: 'drawdown', rally: 'rally', ytd: 'ytd_change', pe: 'pe_ttm' };
+        function sortStocks(stocks) {
+            const field = SORT_FIELD[currentSort];
+            const dir = (currentSort === 'rally' || currentSort === 'ytd') ? -1 : 1;
             return [...stocks].sort((a, b) => {
-                const da = typeof a.drawdown === 'number' ? a.drawdown : Infinity;
-                const db = typeof b.drawdown === 'number' ? b.drawdown : Infinity;
-                return da - db;
+                const va = typeof a[field] === 'number' ? a[field] : null;
+                const vb = typeof b[field] === 'number' ? b[field] : null;
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1;
+                if (vb === null) return -1;
+                return (va - vb) * dir;
             });
         }
 
+        function updateBadges() {
+            const a = aShareData ? aShareData.stocks : [];
+            const us = usStockData ? usStockData.stocks : [];
+            let nA = 0, nH = 0;
+            a.forEach(s => { if (s.market === '港股') nH++; else nA++; });
+            document.getElementById('badgeAll').textContent = a.length + us.length;
+            document.getElementById('badgeA').textContent = nA;
+            document.getElementById('badgeH').textContent = nH;
+            document.getElementById('badgeUs').textContent = us.length;
+        }
+
         // 统一渲染：所有市场都用 week52_high / week52_low
-        function renderStocks(data, listId, codeKey, mktLabel) {
-            const list = document.getElementById(listId);
-            list.innerHTML = sortByDrawdown(data.stocks).map(s => {
-                const codeTxt = s[codeKey] || '';
+        function renderCurrent() {
+            const list = document.getElementById('stockList');
+            const stocks = sortStocks(currentStocks());
+
+            if (!stocks.length) {
+                list.innerHTML = (errorA || errorUs)
+                    ? `<div class="error-state">加载失败<span class="error-state-hint">请点击右上角刷新重试</span></div>`
+                    : `<div class="error-state">暂无数据</div>`;
+                return;
+            }
+
+            list.innerHTML = stocks.map(s => {
+                const codeTxt = esc(s.code || s.ticker || '');
+                const mkt = s.market === 'A股' ? 'A' : s.market === '港股' ? 'HK' : 'US';
                 const nameHtml = `
                     <div class="stock-name-row">
-                        <span class="stock-name">${s.name}</span>
+                        <span class="stock-name">${esc(s.name)}</span>
                         <span class="stock-code">${codeTxt}</span>
-                        <span class="stock-market">${mktLabel(s)}</span>
+                        <span class="stock-market">${mkt}</span>
                     </div>`;
 
                 if (s.error) {
                     return `<div class="stock-row">
                         <div class="stock-main">${nameHtml}
-                            <span style="font-size:11px;color:var(--text-muted)">${s.error}</span>
+                            <span style="font-size:11px;color:var(--text-muted)">${esc(s.error)}</span>
                         </div>
                     </div>`;
                 }
@@ -382,43 +467,35 @@
             }).join('');
         }
 
-        async function loadData(type) {
-            const loadingId = type === 'a' ? 'loadingA' : 'loadingUs';
-            const listId = type === 'a' ? 'listA' : 'listUs';
-
-            document.getElementById(loadingId).classList.remove('hidden');
-            document.getElementById(listId).innerHTML = '';
-
+        async function loadType(type) {
             try {
                 const resp = await fetch(`/api/quotes?type=${type}`);
                 if (!resp.ok) throw new Error('API');
                 const data = await resp.json();
-
-                if (type === 'a') {
-                    aShareData = data;
-                    renderStocks(data, 'listA', 'code', s => s.market === 'A股' ? 'A' : 'HK');
-                } else {
-                    usStockData = data;
-                    renderStocks(data, 'listUs', 'ticker', () => 'US');
-                }
+                if (type === 'a') { aShareData = data; errorA = false; }
+                else { usStockData = data; errorUs = false; }
                 document.getElementById('updateTime').textContent = data.update_time || '';
+                return true;
             } catch (err) {
-                document.getElementById(listId).innerHTML =
-                    `<div class="error-state">加载失败<span class="error-state-hint">请点击右上角刷新重试</span></div>`;
-            } finally {
-                document.getElementById(loadingId).classList.add('hidden');
+                if (type === 'a') errorA = true; else errorUs = true;
+                return false;
             }
         }
 
         async function refreshData() {
             const btn = document.getElementById('refreshBtn');
             btn.classList.add('loading');
-            await Promise.all([loadData('a'), loadData('us')]);
+            const listBox = document.getElementById('loadingBox');
+            if (!document.getElementById('stockList').innerHTML) listBox.classList.remove('hidden');
+            await Promise.all([loadType('a'), loadType('us')]);
+            listBox.classList.add('hidden');
+            updateBadges();
+            renderCurrent();
             btn.classList.remove('loading');
         }
 
         async function init() {
-            await Promise.all([loadData('a'), loadData('us')]);
+            await refreshData();
         }
         init();
     </script>
