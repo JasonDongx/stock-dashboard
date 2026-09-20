@@ -41,32 +41,11 @@
             padding: 12px 20px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             position: sticky;
             top: 0;
             z-index: 100;
         }
-
-        .logo {
-            font-size: 17px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-        }
-
-        .logo-dot {
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--up);
-            margin-right: 7px;
-            animation: pulse 2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         .header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
@@ -229,8 +208,8 @@
         .range-label-text.center { flex: 0 0 auto; text-align: center; font-family: var(--font-sans); letter-spacing: 0.5px; }
         .range-label-text.right { text-align: right; }
 
-        /* Right side */
-        .stock-side { text-align: right; flex-shrink: 0; }
+        /* Right side：固定宽度，保证每行区间横杠等长 */
+        .stock-side { text-align: right; flex-shrink: 0; width: 84px; }
         .stock-price {
             font-family: var(--font-mono);
             font-size: 17px;
@@ -269,7 +248,6 @@
             .metrics-grid { gap: 4px 6px; }
             .metric-value { font-size: 11px; }
             .stock-price { font-size: 16px; }
-            .logo { font-size: 15px; }
             .update-time { font-size: 10px; }
             .header-right { gap: 8px; }
             .refresh-btn { padding: 4px 10px; font-size: 11px; }
@@ -283,7 +261,6 @@
 </head>
 <body>
     <header class="header">
-        <div class="logo"><span class="logo-dot"></span>行情看板</div>
         <div class="header-right">
             <span class="update-time" id="updateTime"></span>
             <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
@@ -380,11 +357,11 @@
             return list;
         }
 
-        // 排序：距1年高=回撤最深在前；距1年低=距低涨幅最大在前；今年来/PE 降序/升序；无数据一律排最后
+        // 排序：距1年高=回撤最深在前；距1年低=距低点涨幅最小在前；今年来=涨幅最大在前；PE=升序；无数据一律排最后
         const SORT_FIELD = { drawdown: 'drawdown', rally: 'rally', ytd: 'ytd_change', pe: 'pe_ttm' };
         function sortStocks(stocks) {
             const field = SORT_FIELD[currentSort];
-            const dir = (currentSort === 'rally' || currentSort === 'ytd') ? -1 : 1;
+            const dir = currentSort === 'ytd' ? -1 : 1;
             return [...stocks].sort((a, b) => {
                 const va = typeof a[field] === 'number' ? a[field] : null;
                 const vb = typeof b[field] === 'number' ? b[field] : null;
