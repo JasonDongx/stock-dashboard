@@ -1,6 +1,6 @@
 // Vercel Serverless Function - 行情数据获取
-// 使用 iconv-lite 正确解码 GBK 编码的腾讯行情接口数据
-// K线数据并行获取 + 超时保护，避免 Vercel 函数超时
+// 数据源：腾讯行情接口 qt.gtimg.cn（GBK编码，iconv-lite解码）
+// 52周高低直接读行情字段；YTD用2025年末收盘价常量计算（不依赖K线接口）
 
 const iconv = require("iconv-lite");
 
@@ -39,6 +39,37 @@ const US_STOCKS = [
   { code: "usWMT", name: "沃尔玛", ticker: "WMT" },
 ];
 
+// 2025年末收盘价（2025-12-31实际收盘，历史固定数据；null=当年未上市）
+const YE2025_CLOSE = {
+  sh600519: 1377.18,
+  sh600036: 42.10,
+  sz000333: 78.15,
+  sh600900: 27.19,
+  sh601318: 68.40,
+  hk09992: 187.70,
+  hk00700: 599.00,
+  hk01810: 39.30,
+  hk01364: 24.78,
+  hk00981: 71.45,
+  AAPL: 271.86,
+  MSFT: 483.62,
+  NVDA: 186.50,
+  AMZN: 230.82,
+  GOOGL: 313.00,
+  META: 660.09,
+  TSLA: 449.72,
+  AVGO: 346.10,
+  TSM: 303.89,
+  SKHY: null, // 2026-07-10上市
+  PDD: 113.39,
+  SPCX: null, // 2026-06-12上市
+  "BRK.B": 502.65,
+  KO: 69.91,
+  MCD: 305.63,
+  COST: 862.34,
+  WMT: 111.41,
+};
+
 function toNum(val) {
   if (val === null || val === undefined || val === "") return null;
   const n = parseFloat(val);
@@ -50,15 +81,12 @@ function round2(val) {
   return Math.round(val * 100) / 100;
 }
 
-// 获取 URL 内容（支持 GBK），带超时
-async function fetchUrl(url, isGBK = false, timeoutMs = 8000) {
+async function fetchUrl(url, isGBK = false, timeoutMs = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const resp = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
       signal: controller.signal,
     });
     if (isGBK) {
@@ -66,14 +94,11 @@ async function fetchUrl(url, isGBK = false, timeoutMs = 8000) {
       return iconv.decode(buffer, "gbk");
     }
     return await resp.text();
-  } catch (e) {
-    return null;
   } finally {
     clearTimeout(timer);
   }
 }
 
-// 解析腾讯行情数据
 function parseQuoteData(rawText) {
   const result = {};
   if (!rawText) return result;
@@ -85,137 +110,66 @@ function parseQuoteData(rawText) {
   return result;
 }
 
-// 获取单只股票的日K线（并行调用时使用）
-async function fetchKlineSingle(code, days = 280) {
-  const url = `https://web.ifzq.gtimg.cn/appstock/app/kline/kline?param=${code},day,,${days}`;
-  try {
-    const text = await fetchUrl(url, false, 8000);
-    if (!text) return [];
-    const data = JSON.parse(text);
-    const klineData = data.data || {};
-    for (const key in klineData) {
-      if (klineData[key].day) return klineData[key].day;
-    }
-  } catch (e) {
-    // 静默失败
-  }
-  return [];
-}
-
-// 计算去年末收盘价
-function calcYearStartPrice(klineData, currentYear) {
-  const lastYear = currentYear - 1;
-  const lastYearRows = klineData.filter((r) => r[0].startsWith(String(lastYear)));
-  if (lastYearRows.length > 0) {
-    return parseFloat(lastYearRows[lastYearRows.length - 1][2]);
-  }
-  return null;
-}
-
-// 从K线数据计算所有衍生指标
-function calcKlineMetrics(kline, price, currentYear) {
-  let yearHigh = null, yearLow = null, ytdChange = null;
-
-  if (kline && kline.length > 0) {
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const recent = kline.filter((r) => {
-      try {
-        return new Date(r[0]) >= oneYearAgo;
-      } catch {
-        return false;
-      }
-    });
-    if (recent.length > 0) {
-      yearHigh = Math.max(...recent.map((r) => parseFloat(r[3])).filter((n) => !isNaN(n)));
-      yearLow = Math.min(...recent.map((r) => parseFloat(r[4])).filter((n) => !isNaN(n)));
-    }
-    const yearStart = calcYearStartPrice(kline, currentYear);
-    if (yearStart && price) {
-      ytdChange = ((price - yearStart) / yearStart) * 100;
-    }
-  }
-
-  return { yearHigh, yearLow, ytdChange };
-}
-
 function stripCode(code) {
   return code.replace(/^(sh|sz|hk)/, "");
 }
 
-// 抓取 A股/港股
-async function fetchAShareData() {
-  const currentYear = new Date().getFullYear();
+function buildStock(base, fields, price, peTtm, week52High, week52Low, ytdBase) {
+  const prevClose = toNum(fields[4]);
 
-  // 1. 批量获取实时行情
+  let changePct = toNum(fields[32]);
+  if ((changePct === null || changePct === 0) && price && prevClose) {
+    changePct = ((price - prevClose) / prevClose) * 100;
+  }
+
+  const ytdChange =
+    ytdBase && price ? ((price - ytdBase) / ytdBase) * 100 : null;
+  const drawdown = week52High && price ? ((price - week52High) / week52High) * 100 : null;
+  const rally = week52Low && price ? ((price - week52Low) / week52Low) * 100 : null;
+
+  return {
+    ...base,
+    price: round2(price),
+    prev_close: round2(prevClose),
+    change_pct: round2(changePct),
+    pe_ttm: peTtm !== null ? (peTtm > 0 ? round2(peTtm) : "亏损") : null,
+    week52_high: round2(week52High),
+    week52_low: round2(week52Low),
+    drawdown: round2(drawdown),
+    rally: round2(rally),
+    ytd_change: round2(ytdChange),
+  };
+}
+
+async function fetchAShareData() {
   const codes = A_STOCKS.map((s) => s.code).join(",");
-  const raw = await fetchUrl(`https://qt.gtimg.cn/q=${codes}`, true, 10000);
+  const raw = await fetchUrl(`https://qt.gtimg.cn/q=${codes}`, true);
   const quotes = parseQuoteData(raw);
 
-  // 2. 并行获取所有K线数据
-  const klinePromises = A_STOCKS.map((s) => fetchKlineSingle(s.code, 280));
-  const klineResults = await Promise.all(klinePromises);
-
-  // 3. 合并数据
-  const stocks = A_STOCKS.map((stock, i) => {
+  const stocks = A_STOCKS.map((stock) => {
     const fields = quotes[stock.code];
-    if (!fields || fields.length < 40) {
-      return {
-        code: stripCode(stock.code),
-        name: stock.name,
-        market: stock.market,
-        currency: stock.currency,
-        error: "数据暂缺",
-      };
+    const base = {
+      code: stripCode(stock.code),
+      name: stock.name,
+      market: stock.market,
+      currency: stock.currency,
+    };
+    if (!fields || fields.length < 69) {
+      return { ...base, error: "数据暂缺" };
     }
-
     try {
       const price = toNum(fields[3]);
-      const prevClose = toNum(fields[4]);
-
-      let changePct = toNum(fields[32]);
-      if ((changePct === null || changePct === 0) && price && prevClose) {
-        changePct = ((price - prevClose) / prevClose) * 100;
-      }
-
-      // 市盈率TTM
-      let peTtm = null;
-      if (stock.market === "A股") {
-        peTtm = toNum(fields[39]);
-      } else {
-        peTtm = toNum(fields[57]);
-      }
-
-      // K线衍生指标
-      const kline = klineResults[i];
-      const { yearHigh, yearLow, ytdChange } = calcKlineMetrics(kline, price, currentYear);
-
-      const drawdown = yearHigh && price ? ((price - yearHigh) / yearHigh) * 100 : null;
-      const rally = yearLow && price ? ((price - yearLow) / yearLow) * 100 : null;
-
+      // A股：PE=[39] 52周高=[67] 52周低=[68]；港股：PE=[57] 52周高=[48] 52周低=[49]
+      const isA = stock.code.startsWith("sh") || stock.code.startsWith("sz");
+      const peTtm = isA ? toNum(fields[39]) : toNum(fields[57]);
+      const w52h = isA ? toNum(fields[67]) : toNum(fields[48]);
+      const w52l = isA ? toNum(fields[68]) : toNum(fields[49]);
       return {
-        code: stripCode(stock.code),
+        ...buildStock(base, fields, price, peTtm, w52h, w52l, YE2025_CLOSE[stock.code]),
         name: fields[1] || stock.name,
-        market: stock.market,
-        currency: stock.currency,
-        price: round2(price),
-        prev_close: round2(prevClose),
-        change_pct: round2(changePct),
-        pe_ttm: peTtm !== null ? (peTtm > 0 ? round2(peTtm) : "亏损") : null,
-        year_high: round2(yearHigh),
-        year_low: round2(yearLow),
-        drawdown: round2(drawdown),
-        rally: round2(rally),
-        ytd_change: round2(ytdChange),
       };
-    } catch (e) {
-      return {
-        code: stripCode(stock.code),
-        name: stock.name,
-        market: stock.market,
-        currency: stock.currency,
-        error: "数据暂缺",
-      };
+    } catch {
+      return { ...base, error: "数据暂缺" };
     }
   });
 
@@ -225,96 +179,39 @@ async function fetchAShareData() {
   };
 }
 
-// 抓取美股
 async function fetchUsStockData() {
-  const currentYear = new Date().getFullYear();
-
-  // 1. 批量获取实时行情
   const codes = US_STOCKS.map((s) => s.code).join(",");
-  const raw = await fetchUrl(`https://qt.gtimg.cn/q=${codes}`, true, 10000);
+  const raw = await fetchUrl(`https://qt.gtimg.cn/q=${codes}`, true);
   const quotes = parseQuoteData(raw);
 
-  // 2. 并行获取所有K线数据（仅为 ytd_change）
-  // 先从实时行情提取股票完整代码
-  const stockData = US_STOCKS.map((stock) => {
-    const key = stock.code.toLowerCase();
+  const stocks = US_STOCKS.map((stock) => {
     let fields = null;
-    for (const k in quotes) {
-      if (k.toLowerCase() === key) {
+    for (const k of Object.keys(quotes)) {
+      if (k.toLowerCase() === stock.code.toLowerCase()) {
         fields = quotes[k];
         break;
       }
     }
-    return { stock, fields };
-  });
-
-  // 并行获取K线
-  const klinePromises = stockData.map(({ fields }) => {
-    if (!fields || fields.length < 3) return Promise.resolve([]);
-    const fullCode = fields[2] || "";
-    return fetchKlineSingle(`us${fullCode}`, 320);
-  });
-  const klineResults = await Promise.all(klinePromises);
-
-  // 3. 合并数据
-  const stocks = stockData.map(({ stock, fields }, i) => {
+    const base = {
+      ticker: stock.ticker,
+      name: stock.name,
+      currency: "美元",
+    };
     if (!fields || fields.length < 50) {
-      return {
-        ticker: stock.ticker,
-        name: stock.name,
-        currency: "美元",
-        error: "数据暂缺",
-      };
+      return { ...base, error: "数据暂缺" };
     }
-
     try {
       const price = toNum(fields[3]);
-      const prevClose = toNum(fields[4]);
-
-      let changePct = toNum(fields[32]);
-      if ((changePct === null || changePct === 0) && price && prevClose) {
-        changePct = ((price - prevClose) / prevClose) * 100;
-      }
-
+      // 美股：PE=[39] 52周高=[48] 52周低=[49]
       const peTtm = toNum(fields[39]);
-      // 52周高低直接从实时行情获取
-      const week52High = toNum(fields[48]);
-      const week52Low = toNum(fields[49]);
-
-      // K线只为算 ytd_change
-      const kline = klineResults[i];
-      let ytdChange = null;
-      if (kline && kline.length > 0 && price) {
-        const yearStart = calcYearStartPrice(kline, currentYear);
-        if (yearStart) {
-          ytdChange = ((price - yearStart) / yearStart) * 100;
-        }
-      }
-
-      const drawdown = week52High && price ? ((price - week52High) / week52High) * 100 : null;
-      const rally = week52Low && price ? ((price - week52Low) / week52Low) * 100 : null;
-
+      const w52h = toNum(fields[48]);
+      const w52l = toNum(fields[49]);
       return {
-        ticker: stock.ticker,
+        ...buildStock(base, fields, price, peTtm, w52h, w52l, YE2025_CLOSE[stock.ticker]),
         name: fields[1] || stock.name,
-        currency: "美元",
-        price: round2(price),
-        prev_close: round2(prevClose),
-        change_pct: round2(changePct),
-        pe_ttm: peTtm !== null ? (peTtm > 0 ? round2(peTtm) : "亏损") : null,
-        week52_high: round2(week52High),
-        week52_low: round2(week52Low),
-        drawdown: round2(drawdown),
-        rally: round2(rally),
-        ytd_change: round2(ytdChange),
       };
-    } catch (e) {
-      return {
-        ticker: stock.ticker,
-        name: stock.name,
-        currency: "美元",
-        error: "数据暂缺",
-      };
+    } catch {
+      return { ...base, error: "数据暂缺" };
     }
   });
 
@@ -339,11 +236,9 @@ export default async function handler(req, res) {
 
   try {
     if (type === "a") {
-      const data = await fetchAShareData();
-      res.status(200).json(data);
+      res.status(200).json(await fetchAShareData());
     } else if (type === "us") {
-      const data = await fetchUsStockData();
-      res.status(200).json(data);
+      res.status(200).json(await fetchUsStockData());
     } else {
       const [aData, usData] = await Promise.all([fetchAShareData(), fetchUsStockData()]);
       res.status(200).json({ a_share: aData, us_stock: usData });
