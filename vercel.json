@@ -1,11 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/quotes.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/data/(.*)", "dest": "/data/$1" },
-    { "src": "/api/quotes", "dest": "/api/quotes.js" }
-  ]
+  "functions": {
+    "api/quotes.js": {
+      "maxDuration": 30
+    }
+  }
 }
