@@ -47,7 +47,13 @@
             z-index: 100;
         }
 
-        .logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+        .logo {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+        }
 
         .logo-dot {
             display: inline-block;
@@ -57,9 +63,19 @@
             background: var(--up);
             margin-right: 7px;
             animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
         }
 
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        .update-time {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
 
         .refresh-btn {
             background: var(--surface);
@@ -106,25 +122,6 @@
         .tab:hover { color: var(--text-secondary); }
         .tab.active { color: var(--text); border-bottom-color: var(--accent); }
         .tab-badge { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-left: 4px; }
-
-        /* Summary */
-        .summary {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 10px 20px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            overflow-x: auto;
-        }
-
-        .summary-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-        .summary-label { font-size: 11px; color: var(--text-muted); }
-        .summary-value { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
-        .summary-value.up { color: var(--up); }
-        .summary-value.down { color: var(--down); }
-        .summary-value.neutral { color: var(--text); }
-        .summary-time { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; }
 
         /* Stock List */
         .stock-list { padding: 4px 0 24px; }
@@ -197,8 +194,16 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
 
-        .range-labels { display: flex; justify-content: space-between; margin-top: 4px; }
-        .range-label-text { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); }
+        .range-labels { display: flex; margin-top: 4px; gap: 6px; }
+        .range-label-text {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .range-label-text.center { flex: 0 0 auto; text-align: center; font-family: var(--font-sans); letter-spacing: 0.5px; }
+        .range-label-text.right { text-align: right; }
 
         /* Right side */
         .stock-side { text-align: right; flex-shrink: 0; }
@@ -234,12 +239,13 @@
         @media (max-width: 640px) {
             .header { padding: 10px 16px; }
             .tabs { padding: 0 16px; gap: 20px; }
-            .summary { padding: 8px 16px; gap: 12px; }
             .stock-row { padding: 12px 16px; }
             .metrics-grid { gap: 4px 6px; }
             .metric-value { font-size: 11px; }
             .stock-price { font-size: 16px; }
             .logo { font-size: 15px; }
+            .update-time { font-size: 10px; }
+            .header-right { gap: 8px; }
             .refresh-btn { padding: 4px 10px; font-size: 11px; }
         }
 
@@ -252,9 +258,12 @@
 <body>
     <header class="header">
         <div class="logo"><span class="logo-dot"></span>行情看板</div>
-        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-            <span class="spin">⟳</span> 刷新
-        </button>
+        <div class="header-right">
+            <span class="update-time" id="updateTime"></span>
+            <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+                <span class="spin">⟳</span> 刷新
+            </button>
+        </div>
     </header>
 
     <nav class="tabs">
@@ -263,7 +272,6 @@
     </nav>
 
     <div id="panelA">
-        <div class="summary" id="summaryA"></div>
         <div class="stock-list" id="listA"></div>
         <div class="loading-state hidden" id="loadingA">
             <div class="loading-spinner"></div><p>加载中...</p>
@@ -271,7 +279,6 @@
     </div>
 
     <div id="panelUs" class="hidden">
-        <div class="summary" id="summaryUs"></div>
         <div class="stock-list" id="listUs"></div>
         <div class="loading-state hidden" id="loadingUs">
             <div class="loading-spinner"></div><p>加载中...</p>
@@ -310,35 +317,24 @@
             return val > 0 ? 'up' : 'down';
         }
 
-        function calcOverview(stocks) {
-            const valid = stocks.filter(s => !s.error && typeof s.change_pct === 'number');
-            if (valid.length === 0) return { up: 0, down: 0, flat: 0, avg: 0 };
-            const up = valid.filter(s => s.change_pct > 0).length;
-            const down = valid.filter(s => s.change_pct < 0).length;
-            const flat = valid.length - up - down;
-            const avg = valid.reduce((s, x) => s + x.change_pct, 0) / valid.length;
-            return { up, down, flat, avg };
-        }
-
-        function renderSummary(ov, id, time) {
-            document.getElementById(id).innerHTML = `
-                <div class="summary-item"><span class="summary-label">上涨</span><span class="summary-value up">${ov.up}</span></div>
-                <div class="summary-item"><span class="summary-label">下跌</span><span class="summary-value down">${ov.down}</span></div>
-                <div class="summary-item"><span class="summary-label">平盘</span><span class="summary-value neutral">${ov.flat}</span></div>
-                <div class="summary-item"><span class="summary-label">均值</span><span class="summary-value ${changeClass(ov.avg)}">${fmtPct(ov.avg)}</span></div>
-                <span class="summary-time">${time || ''}</span>
-            `;
-        }
-
         function calcPos(price, low, high) {
             if (!price || !low || !high || high === low) return 50;
             return Math.max(0, Math.min(100, (price - low) / (high - low) * 100));
         }
 
+        // 按距1年高点回撤排序：回撤最大（最负）的在前，无数据的排最后
+        function sortByDrawdown(stocks) {
+            return [...stocks].sort((a, b) => {
+                const da = typeof a.drawdown === 'number' ? a.drawdown : Infinity;
+                const db = typeof b.drawdown === 'number' ? b.drawdown : Infinity;
+                return da - db;
+            });
+        }
+
         // 统一渲染：所有市场都用 week52_high / week52_low
         function renderStocks(data, listId, codeKey, mktLabel) {
             const list = document.getElementById(listId);
-            list.innerHTML = data.stocks.map(s => {
+            list.innerHTML = sortByDrawdown(data.stocks).map(s => {
                 const codeTxt = s[codeKey] || '';
                 const nameHtml = `
                     <div class="stock-name-row">
@@ -365,16 +361,17 @@
                         <div class="metrics-grid">
                             <div class="metric"><span class="metric-label">PE</span><span class="metric-value">${s.pe_ttm ?? '--'}</span></div>
                             <div class="metric"><span class="metric-label">今年来</span><span class="metric-value ${changeClass(s.ytd_change)}">${fmtPct(s.ytd_change)}</span></div>
-                            <div class="metric"><span class="metric-label">距高点</span><span class="metric-value ${changeClass(s.drawdown)}">${fmtPct(s.drawdown)}</span></div>
-                            <div class="metric"><span class="metric-label">距低点</span><span class="metric-value ${changeClass(s.rally)}">${fmtPct(s.rally)}</span></div>
+                            <div class="metric"><span class="metric-label">距1年高</span><span class="metric-value ${changeClass(s.drawdown)}">${fmtPct(s.drawdown)}</span></div>
+                            <div class="metric"><span class="metric-label">距1年低</span><span class="metric-value ${changeClass(s.rally)}">${fmtPct(s.rally)}</span></div>
                         </div>
                         ${hasRange ? `<div class="range-bar">
                             <div class="range-fill" style="width:100%"></div>
                             <div class="range-dot" style="left:${pos}%"></div>
                         </div>
                         <div class="range-labels">
-                            <span class="range-label-text">${fmtNum(s.week52_low)}</span>
-                            <span class="range-label-text">52周 ${fmtNum(s.week52_high)}</span>
+                            <span class="range-label-text">低 ${fmtNum(s.week52_low)}</span>
+                            <span class="range-label-text center">近1年</span>
+                            <span class="range-label-text right">高 ${fmtNum(s.week52_high)}</span>
                         </div>` : ''}
                     </div>
                     <div class="stock-side">
@@ -388,11 +385,9 @@
         async function loadData(type) {
             const loadingId = type === 'a' ? 'loadingA' : 'loadingUs';
             const listId = type === 'a' ? 'listA' : 'listUs';
-            const summaryId = type === 'a' ? 'summaryA' : 'summaryUs';
 
             document.getElementById(loadingId).classList.remove('hidden');
             document.getElementById(listId).innerHTML = '';
-            document.getElementById(summaryId).innerHTML = '';
 
             try {
                 const resp = await fetch(`/api/quotes?type=${type}`);
@@ -406,7 +401,7 @@
                     usStockData = data;
                     renderStocks(data, 'listUs', 'ticker', () => 'US');
                 }
-                renderSummary(calcOverview(data.stocks), summaryId, data.update_time || '');
+                document.getElementById('updateTime').textContent = data.update_time || '';
             } catch (err) {
                 document.getElementById(listId).innerHTML =
                     `<div class="error-state">加载失败<span class="error-state-hint">请点击右上角刷新重试</span></div>`;

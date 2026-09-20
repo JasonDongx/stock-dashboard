@@ -174,7 +174,7 @@ async function fetchAShareData() {
   });
 
   return {
-    update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }),
+    update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
     stocks,
   };
 }
@@ -216,7 +216,7 @@ async function fetchUsStockData() {
   });
 
   return {
-    update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }),
+    update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
     stocks,
   };
 }
