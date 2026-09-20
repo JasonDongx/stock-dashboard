@@ -1,0 +1,7 @@
+node_modules/
+.vercel/
+*.pyc
+__pycache__/
+.screenshots/
+.trae-html-share-packages/
+.uploads/
