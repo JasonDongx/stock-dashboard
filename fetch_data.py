@@ -11,13 +11,17 @@ import re
 import os
 from datetime import datetime, timedelta
 
-# 代理配置
-PROXY = "http://127.0.0.1:18080"
-proxy_handler = urllib.request.ProxyHandler({
-    "http": PROXY,
-    "https": PROXY
-})
-opener = urllib.request.build_opener(proxy_handler)
+# 代理配置：默认直连，需要时通过环境变量指定，例如：
+#   PROXY_URL=http://127.0.0.1:18080 python3 fetch_data.py
+PROXY = os.environ.get("PROXY_URL", "")
+if PROXY:
+    proxy_handler = urllib.request.ProxyHandler({
+        "http": PROXY,
+        "https": PROXY
+    })
+    opener = urllib.request.build_opener(proxy_handler)
+else:
+    opener = urllib.request.build_opener()
 
 # 数据输出目录
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -309,6 +313,7 @@ def fetch_us_stock_data():
 
 
 def main():
+    print(f"代理设置: {PROXY if PROXY else '直连（如需代理请设置环境变量 PROXY_URL）'}")
     print("正在抓取 A股/港股 行情数据...")
     a_data = fetch_a_share_data()
     a_path = os.path.join(DATA_DIR, "a_share.json")
