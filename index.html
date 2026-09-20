@@ -6,28 +6,25 @@
     <title>行情看板</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --surface: #161b22;
-            --surface-hover: #1c2128;
-            --border: #30363d;
-            --border-light: #21262d;
-            --text: #e6edf3;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --up: #f85149;
-            --down: #3fb950;
-            --flat: #8b949e;
-            --accent: #58a6ff;
-            --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            --bg: #f6f7f8;
+            --surface: #ffffff;
+            --surface-alt: #f0f1f3;
+            --border: #e4e6eb;
+            --border-light: #f0f1f3;
+            --text: #1a1a1a;
+            --text-secondary: #5e6470;
+            --text-muted: #9ba1ac;
+            --up: #e53935;
+            --down: #00a870;
+            --flat: #9ba1ac;
+            --accent: #2b6cf6;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Consolas, monospace;
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: var(--font-sans);
@@ -39,7 +36,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ===== Header ===== */
+        /* Header */
         .header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -50,52 +47,41 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(12px);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
         .logo {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
-            letter-spacing: -0.5px;
-            color: var(--text);
+            letter-spacing: -0.3px;
         }
 
         .logo-dot {
             display: inline-block;
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: var(--up);
-            margin-right: 6px;
+            margin-right: 7px;
             animation: pulse 2s ease-in-out infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .timestamp {
             font-family: var(--font-mono);
             font-size: 11px;
-            color: var(--text-secondary);
+            color: var(--text-muted);
             white-space: nowrap;
         }
 
         .refresh-btn {
-            background: transparent;
+            background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text-secondary);
             padding: 5px 14px;
@@ -106,34 +92,16 @@
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
 
-        .refresh-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .refresh-btn.loading { opacity: 0.5; pointer-events: none; }
+        .refresh-btn.loading .spin { animation: rotate 0.8s linear infinite; }
 
-        .refresh-btn.loading {
-            opacity: 0.5;
-            pointer-events: none;
-        }
+        @keyframes rotate { to { transform: rotate(360deg); } }
 
-        .refresh-btn .spin {
-            display: inline-block;
-            font-size: 11px;
-            transition: transform 0.5s;
-        }
-
-        .refresh-btn.loading .spin {
-            animation: rotate 0.8s linear infinite;
-        }
-
-        @keyframes rotate {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ===== Tabs ===== */
+        /* Tabs */
         .tabs {
             display: flex;
             background: var(--surface);
@@ -147,36 +115,22 @@
             background: transparent;
             border: none;
             color: var(--text-muted);
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
-            font-family: var(--font-sans);
         }
 
-        .tab:hover {
-            color: var(--text-secondary);
-        }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+        .tab-badge { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-left: 4px; }
 
-        .tab.active {
-            color: var(--text);
-            border-bottom-color: var(--accent);
-        }
-
-        .tab-badge {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-left: 4px;
-        }
-
-        /* ===== Summary Bar ===== */
+        /* Summary */
         .summary {
             display: flex;
-            gap: 0;
             padding: 10px 20px;
-            background: var(--bg);
+            background: var(--surface);
             border-bottom: 1px solid var(--border-light);
             overflow-x: auto;
         }
@@ -191,71 +145,44 @@
             white-space: nowrap;
         }
 
-        .summary-item:last-child {
-            border-right: none;
-        }
-
-        .summary-label {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .summary-value {
-            font-family: var(--font-mono);
-            font-size: 13px;
-            font-weight: 600;
-        }
-
+        .summary-item:last-child { border-right: none; }
+        .summary-label { font-size: 11px; color: var(--text-muted); }
+        .summary-value { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
         .summary-value.up { color: var(--up); }
         .summary-value.down { color: var(--down); }
         .summary-value.neutral { color: var(--text); }
 
-        /* ===== Stock Table ===== */
-        .stock-list {
-            padding: 8px 0;
-        }
+        /* Stock List */
+        .stock-list { padding: 4px 0; }
 
         .stock-row {
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 8px;
-            padding: 12px 20px;
+            padding: 14px 20px;
+            background: var(--surface);
             border-bottom: 1px solid var(--border-light);
             transition: background 0.15s;
             align-items: center;
         }
 
-        .stock-row:hover {
-            background: var(--surface-hover);
-        }
-
-        .stock-row-left {
-            min-width: 0;
-        }
+        .stock-row:hover { background: var(--surface-alt); }
+        .stock-row-left { min-width: 0; }
 
         .stock-name-row {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        .stock-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .stock-code {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--text-muted);
-        }
+        .stock-name { font-size: 15px; font-weight: 600; color: var(--text); }
+        .stock-code { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
 
         .stock-market {
             font-size: 9px;
             color: var(--text-muted);
-            background: var(--surface);
+            background: var(--surface-alt);
             border: 1px solid var(--border);
             padding: 1px 5px;
             border-radius: 3px;
@@ -264,73 +191,40 @@
 
         .stock-metrics {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
+            margin-bottom: 6px;
         }
 
-        .metric {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .metric-label {
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-
+        .metric { display: flex; align-items: center; gap: 3px; }
+        .metric-label { font-size: 10px; color: var(--text-muted); }
         .metric-value {
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 500;
             color: var(--text-secondary);
         }
-
         .metric-value.up { color: var(--up); }
         .metric-value.down { color: var(--down); }
 
-        .stock-row-right {
-            text-align: right;
-            min-width: 90px;
-        }
-
-        .stock-price {
-            font-family: var(--font-mono);
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text);
-            line-height: 1.2;
-        }
-
-        .stock-change {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 2px;
-        }
-
-        .stock-change.up { color: var(--up); }
-        .stock-change.down { color: var(--down); }
-        .stock-change.flat { color: var(--flat); }
-
-        /* ===== Range Bar ===== */
+        /* Range Bar */
         .range-section {
-            margin-top: 6px;
+            margin-top: 4px;
             padding-top: 6px;
             border-top: 1px dashed var(--border-light);
         }
 
         .range-bar {
             position: relative;
-            height: 3px;
-            background: var(--border);
+            height: 4px;
+            background: var(--border-light);
             border-radius: 2px;
             overflow: visible;
         }
 
         .range-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--down) 0%, #d29922 50%, var(--up) 100%);
+            background: linear-gradient(90deg, var(--down) 0%, #f5a623 50%, var(--up) 100%);
             border-radius: 2px;
         }
 
@@ -338,17 +232,18 @@
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
-            width: 7px;
-            height: 7px;
+            width: 8px;
+            height: 8px;
             background: var(--text);
             border-radius: 50%;
-            box-shadow: 0 0 0 2px var(--bg);
+            border: 2px solid var(--surface);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
 
         .range-labels {
             display: flex;
             justify-content: space-between;
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         .range-label-text {
@@ -357,67 +252,64 @@
             color: var(--text-muted);
         }
 
-        /* ===== States ===== */
-        .loading-state {
-            text-align: center;
-            padding: 80px 20px;
-            color: var(--text-muted);
+        /* Right side */
+        .stock-row-right { text-align: right; min-width: 95px; }
+        .stock-price {
+            font-family: var(--font-mono);
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
         }
+        .stock-change {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .stock-change.up { color: var(--up); }
+        .stock-change.down { color: var(--down); }
+        .stock-change.flat { color: var(--flat); }
 
+        /* States */
+        .loading-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
         .loading-spinner {
-            width: 28px;
-            height: 28px;
+            width: 24px; height: 24px;
             border: 2px solid var(--border);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: rotate 0.8s linear infinite;
-            margin: 0 auto 12px;
+            margin: 0 auto 10px;
         }
-
-        .error-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--up);
-            font-size: 13px;
-        }
-
-        .error-state-hint {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-
+        .error-state { text-align: center; padding: 40px 20px; color: var(--up); font-size: 13px; }
+        .error-state-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: block; }
         .hidden { display: none !important; }
 
-        /* ===== Footer ===== */
+        /* Footer */
         .footer {
             text-align: center;
             padding: 20px;
             color: var(--text-muted);
             font-size: 10px;
-            border-top: 1px solid var(--border-light);
         }
 
-        /* ===== Mobile ===== */
+        /* Mobile */
         @media (max-width: 640px) {
             .header { padding: 10px 16px; }
             .tabs { padding: 0 16px; gap: 20px; }
             .summary { padding: 8px 16px; }
-            .stock-row { padding: 10px 16px; grid-template-columns: 1fr auto; }
+            .stock-row { padding: 12px 16px; }
             .stock-metrics { gap: 12px; }
-            .stock-price { font-size: 15px; }
-            .logo { font-size: 14px; }
+            .stock-price { font-size: 16px; }
+            .logo { font-size: 15px; }
             .timestamp { display: none; }
             .refresh-btn { padding: 4px 10px; font-size: 11px; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
-        <div class="header-left">
-            <div class="logo"><span class="logo-dot"></span>行情看板</div>
-        </div>
+        <div class="logo"><span class="logo-dot"></span>行情看板</div>
         <div class="header-right">
             <span class="timestamp" id="updateTime">--</span>
             <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
@@ -426,29 +318,24 @@
         </div>
     </header>
 
-    <!-- Tabs -->
     <nav class="tabs">
         <button class="tab active" onclick="switchTab('a')" id="tabA">A股/港股<span class="tab-badge" id="badgeA">10</span></button>
         <button class="tab" onclick="switchTab('us')" id="tabUs">美股<span class="tab-badge" id="badgeUs">17</span></button>
     </nav>
 
-    <!-- Panel A -->
     <div id="panelA">
         <div class="summary" id="summaryA"></div>
         <div class="stock-list" id="listA"></div>
         <div class="loading-state hidden" id="loadingA">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
+            <div class="loading-spinner"></div><p>加载中...</p>
         </div>
     </div>
 
-    <!-- Panel US -->
     <div id="panelUs" class="hidden">
         <div class="summary" id="summaryUs"></div>
         <div class="stock-list" id="listUs"></div>
         <div class="loading-state hidden" id="loadingUs">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
+            <div class="loading-spinner"></div><p>加载中...</p>
         </div>
     </div>
 
@@ -497,28 +384,45 @@
 
         function renderSummary(ov, id) {
             document.getElementById(id).innerHTML = `
-                <div class="summary-item">
-                    <span class="summary-label">上涨</span>
-                    <span class="summary-value up">${ov.up}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">下跌</span>
-                    <span class="summary-value down">${ov.down}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">平盘</span>
-                    <span class="summary-value neutral">${ov.flat}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">均值</span>
-                    <span class="summary-value ${changeClass(ov.avg)}">${fmtPct(ov.avg)}</span>
-                </div>
+                <div class="summary-item"><span class="summary-label">上涨</span><span class="summary-value up">${ov.up}</span></div>
+                <div class="summary-item"><span class="summary-label">下跌</span><span class="summary-value down">${ov.down}</span></div>
+                <div class="summary-item"><span class="summary-label">平盘</span><span class="summary-value neutral">${ov.flat}</span></div>
+                <div class="summary-item"><span class="summary-label">均值</span><span class="summary-value ${changeClass(ov.avg)}">${fmtPct(ov.avg)}</span></div>
             `;
         }
 
         function calcPos(price, low, high) {
             if (!price || !low || !high || high === low) return 50;
             return Math.max(0, Math.min(100, (price - low) / (high - low) * 100));
+        }
+
+        function buildMetrics(s, isUS) {
+            const low = isUS ? s.week52_low : s.year_low;
+            const high = isUS ? s.week52_high : s.year_high;
+            const rangeLabel = isUS ? '52周' : '近一年';
+            const pos = calcPos(s.price, low, high);
+
+            // 如果高低点都没有，不显示区间条
+            let rangeHtml = '';
+            if (low !== null && high !== null) {
+                rangeHtml = `<div class="range-section">
+                    <div class="range-bar">
+                        <div class="range-fill" style="width:100%"></div>
+                        <div class="range-dot" style="left:${pos}%"></div>
+                    </div>
+                    <div class="range-labels">
+                        <span class="range-label-text">${fmtNum(low)}</span>
+                        <span class="range-label-text">${rangeLabel} ${fmtNum(high)}</span>
+                    </div>
+                </div>`;
+            }
+
+            return { metrics: `
+                <div class="metric"><span class="metric-label">PE</span><span class="metric-value">${s.pe_ttm ?? '--'}</span></div>
+                <div class="metric"><span class="metric-label">YTD</span><span class="metric-value ${changeClass(s.ytd_change)}">${fmtPct(s.ytd_change)}</span></div>
+                <div class="metric"><span class="metric-label">距高点</span><span class="metric-value down">${fmtPct(s.drawdown)}</span></div>
+                <div class="metric"><span class="metric-label">距低点</span><span class="metric-value up">${fmtPct(s.rally)}</span></div>
+            `, rangeHtml };
         }
 
         function renderAStocks(data) {
@@ -530,38 +434,23 @@
                             <div class="stock-name-row">
                                 <span class="stock-name">${s.name}</span>
                                 <span class="stock-code">${s.code}</span>
-                                <span class="stock-market">${s.market}</span>
+                                <span class="stock-market">${s.market === 'A股' ? 'A' : 'HK'}</span>
                             </div>
-                            <span class="metric-value" style="color:var(--text-muted)">${s.error}</span>
+                            <span style="font-size:11px;color:var(--text-muted)">${s.error}</span>
                         </div>
                     </div>`;
                 }
                 const cls = changeClass(s.change_pct);
-                const mktCls = s.market === 'A股' ? 'A' : 'HK';
-                const pos = calcPos(s.price, s.year_low, s.year_high);
+                const { metrics, rangeHtml } = buildMetrics(s, false);
                 return `<div class="stock-row">
                     <div class="stock-row-left">
                         <div class="stock-name-row">
                             <span class="stock-name">${s.name}</span>
                             <span class="stock-code">${s.code}</span>
-                            <span class="stock-market">${mktCls}</span>
+                            <span class="stock-market">${s.market === 'A股' ? 'A' : 'HK'}</span>
                         </div>
-                        <div class="stock-metrics">
-                            <div class="metric"><span class="metric-label">PE</span><span class="metric-value">${s.pe_ttm ?? '--'}</span></div>
-                            <div class="metric"><span class="metric-label">YTD</span><span class="metric-value ${changeClass(s.ytd_change)}">${fmtPct(s.ytd_change)}</span></div>
-                            <div class="metric"><span class="metric-label">↓高点</span><span class="metric-value down">${fmtPct(s.drawdown)}</span></div>
-                            <div class="metric"><span class="metric-label">↑低点</span><span class="metric-value up">${fmtPct(s.rally)}</span></div>
-                        </div>
-                        <div class="range-section">
-                            <div class="range-bar">
-                                <div class="range-fill" style="width:100%"></div>
-                                <div class="range-dot" style="left:${pos}%"></div>
-                            </div>
-                            <div class="range-labels">
-                                <span class="range-label-text">${fmtNum(s.year_low)}</span>
-                                <span class="range-label-text">近一年 ${fmtNum(s.year_high)}</span>
-                            </div>
-                        </div>
+                        <div class="stock-metrics">${metrics}</div>
+                        ${rangeHtml}
                     </div>
                     <div class="stock-row-right">
                         <div class="stock-price">${fmtNum(s.price)}</div>
@@ -582,12 +471,12 @@
                                 <span class="stock-code">${s.ticker}</span>
                                 <span class="stock-market">US</span>
                             </div>
-                            <span class="metric-value" style="color:var(--text-muted)">${s.error}</span>
+                            <span style="font-size:11px;color:var(--text-muted)">${s.error}</span>
                         </div>
                     </div>`;
                 }
                 const cls = changeClass(s.change_pct);
-                const pos = calcPos(s.price, s.week52_low, s.week52_high);
+                const { metrics, rangeHtml } = buildMetrics(s, true);
                 return `<div class="stock-row">
                     <div class="stock-row-left">
                         <div class="stock-name-row">
@@ -595,22 +484,8 @@
                             <span class="stock-code">${s.ticker}</span>
                             <span class="stock-market">US</span>
                         </div>
-                        <div class="stock-metrics">
-                            <div class="metric"><span class="metric-label">PE</span><span class="metric-value">${s.pe_ttm ?? '--'}</span></div>
-                            <div class="metric"><span class="metric-label">YTD</span><span class="metric-value ${changeClass(s.ytd_change)}">${fmtPct(s.ytd_change)}</span></div>
-                            <div class="metric"><span class="metric-label">↓高点</span><span class="metric-value down">${fmtPct(s.drawdown)}</span></div>
-                            <div class="metric"><span class="metric-label">↑低点</span><span class="metric-value up">${fmtPct(s.rally)}</span></div>
-                        </div>
-                        <div class="range-section">
-                            <div class="range-bar">
-                                <div class="range-fill" style="width:100%"></div>
-                                <div class="range-dot" style="left:${pos}%"></div>
-                            </div>
-                            <div class="range-labels">
-                                <span class="range-label-text">${fmtNum(s.week52_low)}</span>
-                                <span class="range-label-text">52周 ${fmtNum(s.week52_high)}</span>
-                            </div>
-                        </div>
+                        <div class="stock-metrics">${metrics}</div>
+                        ${rangeHtml}
                     </div>
                     <div class="stock-row-right">
                         <div class="stock-price">${fmtNum(s.price)}</div>
@@ -647,13 +522,8 @@
                     if (!resp.ok) throw new Error('JSON');
                     data = await resp.json();
                 }
-                if (type === 'a') {
-                    aShareData = data;
-                    renderAStocks(data);
-                } else {
-                    usStockData = data;
-                    renderUsStocks(data);
-                }
+                if (type === 'a') { aShareData = data; renderAStocks(data); }
+                else { usStockData = data; renderUsStocks(data); }
                 renderSummary(calcOverview(data.stocks), summaryId);
                 updateTimeDisplay();
             } catch (err) {
@@ -671,10 +541,10 @@
             btn.classList.remove('loading');
         }
 
-        init();
         async function init() {
             await Promise.all([loadData('a', true), loadData('us', true)]);
         }
+        init();
     </script>
 </body>
 </html>
