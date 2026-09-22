@@ -95,6 +95,7 @@ def fetch_a_share_data():
         {"code": "sz000333", "name": "美的集团", "market": "A股", "currency": "元"},
         {"code": "sh600900", "name": "长江电力", "market": "A股", "currency": "元"},
         {"code": "sh601318", "name": "中国平安", "market": "A股", "currency": "元"},
+        {"code": "sz300750", "name": "宁德时代", "market": "A股", "currency": "元"},
         {"code": "hk09992", "name": "泡泡玛特", "market": "港股", "currency": "港元"},
         {"code": "hk00700", "name": "腾讯控股", "market": "港股", "currency": "港元"},
         {"code": "hk01810", "name": "小米集团-W", "market": "港股", "currency": "港元"},
@@ -221,6 +222,9 @@ def fetch_us_stock_data():
         {"code": "usMCD", "name": "麦当劳", "ticker": "MCD"},
         {"code": "usCOST", "name": "好市多", "ticker": "COST"},
         {"code": "usWMT", "name": "沃尔玛", "ticker": "WMT"},
+        {"code": "usTCOM", "name": "携程", "ticker": "TCOM"},
+        {"code": "usBKNG", "name": "Booking", "ticker": "BKNG"},
+        {"code": "usEXPE", "name": "Expedia", "ticker": "EXPE"},
     ]
 
     # 获取实时行情

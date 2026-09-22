@@ -11,6 +11,7 @@ const A_STOCKS = [
   { code: "sz000333", name: "美的集团", market: "A股", currency: "元" },
   { code: "sh600900", name: "长江电力", market: "A股", currency: "元" },
   { code: "sh601318", name: "中国平安", market: "A股", currency: "元" },
+  { code: "sz300750", name: "宁德时代", market: "A股", currency: "元" },
   { code: "hk09992", name: "泡泡玛特", market: "港股", currency: "港元" },
   { code: "hk00700", name: "腾讯控股", market: "港股", currency: "港元" },
   { code: "hk01810", name: "小米集团-W", market: "港股", currency: "港元" },
@@ -37,6 +38,9 @@ const US_STOCKS = [
   { code: "usMCD", name: "麦当劳", ticker: "MCD" },
   { code: "usCOST", name: "好市多", ticker: "COST" },
   { code: "usWMT", name: "沃尔玛", ticker: "WMT" },
+  { code: "usTCOM", name: "携程", ticker: "TCOM" },
+  { code: "usBKNG", name: "Booking", ticker: "BKNG" },
+  { code: "usEXPE", name: "Expedia", ticker: "EXPE" },
 ];
 
 // 2025年末收盘价（2025-12-31实际收盘，历史固定数据；null=当年未上市）
@@ -46,6 +50,7 @@ const YE2025_CLOSE = {
   sz000333: 78.15,
   sh600900: 27.19,
   sh601318: 68.40,
+  sz300750: 358.95,
   hk09992: 187.70,
   hk00700: 599.00,
   hk01810: 39.30,
@@ -68,6 +73,9 @@ const YE2025_CLOSE = {
   MCD: 305.63,
   COST: 862.34,
   WMT: 111.41,
+  TCOM: 71.91,
+  BKNG: 214.21,
+  EXPE: 283.31,
 };
 
 function toNum(val) {
@@ -208,7 +216,6 @@ async function fetchUsStockData() {
       const w52l = toNum(fields[49]);
       return {
         ...buildStock(base, fields, price, peTtm, w52h, w52l, YE2025_CLOSE[stock.ticker]),
-        name: fields[1] || stock.name,
       };
     } catch {
       return { ...base, error: "数据暂缺" };
