@@ -72,6 +72,51 @@ def fetch_daily_kline(code, days=320):
     return []
 
 
+def fetch_fq_kline(code, market, ticker=None):
+    """获取前复权日K（近800个交易日，拆股/除权已换算），用于近2年/3年区间"""
+    if market == "美股":
+        suffix = ".N" if ticker in ("TSM", "BRK.B", "KO", "MCD") else ".OQ"
+        url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code}{suffix},day,,,800,qfq"
+    elif market == "港股":
+        url = f"https://web.ifzq.gtimg.cn/appstock/app/hkfqkline/get?param={code},day,,,800,qfq"
+    else:
+        url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={code},day,,,800,qfq"
+    text = fetch_url(url, "utf-8")
+    if not text:
+        return []
+    try:
+        data = json.loads(text)
+        for node in data.get("data", {}).values():
+            for key in node:
+                if "day" in key:
+                    return node[key]
+    except Exception as e:
+        print(f"解析复权K线失败 {code}: {e}")
+    return []
+
+
+def calc_range_stats(kline):
+    """从复权K线计算近2年/近3年高低；上市不足对应年数返回 None"""
+    now = datetime.now()
+    cutoffs = {
+        "range2": (now - timedelta(days=730)).strftime("%Y-%m-%d"),
+        "range3": (now - timedelta(days=1095)).strftime("%Y-%m-%d"),
+    }
+    if not kline:
+        return {"range2_high": None, "range2_low": None, "range3_high": None, "range3_low": None}
+    first = kline[0][0]
+    stats = {}
+    for prefix, cutoff in cutoffs.items():
+        if first > cutoff:
+            stats[f"{prefix}_high"] = None  # 上市不足N年
+            stats[f"{prefix}_low"] = None
+            continue
+        window = [row for row in kline if row[0] >= cutoff]
+        stats[f"{prefix}_high"] = round(max(float(r[3]) for r in window), 2) if window else None
+        stats[f"{prefix}_low"] = round(min(float(r[4]) for r in window), 2) if window else None
+    return stats
+
+
 def calc_year_start_price(kline_data, current_year):
     """计算去年末收盘价（今年来涨幅基准）"""
     last_year = current_year - 1
@@ -187,6 +232,7 @@ def fetch_a_share_data():
                 "drawdown": round(drawdown, 2) if drawdown is not None else None,
                 "rally": round(rally, 2) if rally is not None else None,
                 "ytd_change": round(ytd_change, 2) if ytd_change is not None else None,
+                **calc_range_stats(fetch_fq_kline(code, stock["market"])),
             })
         except Exception as e:
             print(f"处理 {stock['name']} 失败: {e}")
@@ -305,6 +351,7 @@ def fetch_us_stock_data():
                 "drawdown": round(drawdown, 2) if drawdown is not None else None,
                 "rally": round(rally, 2) if rally is not None else None,
                 "ytd_change": round(ytd_change, 2) if ytd_change is not None else None,
+                **calc_range_stats(fetch_fq_kline(stock["code"], "美股", stock["ticker"])),
             })
         except Exception as e:
             print(f"处理 {stock['name']} 失败: {e}")

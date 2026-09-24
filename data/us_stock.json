@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-09-24 12:31:05",
+  "update_time": "2026-09-24 12:45:57",
   "stocks": [
     {
       "ticker": "AAPL",
@@ -13,7 +13,11 @@
       "week52_low": 242.76,
       "drawdown": -2.41,
       "rally": 38.83,
-      "ytd_change": 23.97
+      "ytd_change": 23.97,
+      "range2_high": 345.34,
+      "range2_low": 168.18,
+      "range3_high": 345.34,
+      "range3_low": 162.3
     },
     {
       "ticker": "MSFT",
@@ -27,7 +31,11 @@
       "week52_low": 348.54,
       "drawdown": -8.84,
       "rally": 43.62,
-      "ytd_change": 3.51
+      "ytd_change": 3.51,
+      "range2_high": 549.97,
+      "range2_low": 340.78,
+      "range3_high": 549.97,
+      "range3_low": 302.38
     },
     {
       "ticker": "NVDA",
@@ -41,7 +49,11 @@
       "week52_low": 163.89,
       "drawdown": -4.44,
       "rally": 37.6,
-      "ytd_change": 20.92
+      "ytd_change": 20.92,
+      "range2_high": 236.0,
+      "range2_low": 86.39,
+      "range3_high": 236.0,
+      "range3_low": 39.1
     },
     {
       "ticker": "AMZN",
@@ -55,7 +67,11 @@
       "week52_low": 196.0,
       "drawdown": -13.21,
       "rally": 27.18,
-      "ytd_change": 7.99
+      "ytd_change": 7.99,
+      "range2_high": 287.2,
+      "range2_low": 161.38,
+      "range3_high": 287.2,
+      "range3_low": 118.35
     },
     {
       "ticker": "GOOGL",
@@ -69,7 +85,11 @@
       "week52_low": 235.23,
       "drawdown": -17.22,
       "rally": 43.62,
-      "ytd_change": 7.93
+      "ytd_change": 7.93,
+      "range2_high": 408.12,
+      "range2_low": 139.87,
+      "range3_high": 408.12,
+      "range3_low": 119.08
     },
     {
       "ticker": "META",
@@ -83,7 +103,11 @@
       "week52_low": 519.38,
       "drawdown": -2.59,
       "rally": 43.27,
-      "ytd_change": 12.73
+      "ytd_change": 12.73,
+      "range2_high": 792.99,
+      "range2_low": 477.45,
+      "range3_high": 792.99,
+      "range3_low": 276.7
     },
     {
       "ticker": "TSLA",
@@ -97,7 +121,11 @@
       "week52_low": 297.38,
       "drawdown": -23.8,
       "rally": 27.82,
-      "ytd_change": -15.48
+      "ytd_change": -15.48,
+      "range2_high": 498.83,
+      "range2_low": 212.11,
+      "range3_high": 498.83,
+      "range3_low": 138.8
     },
     {
       "ticker": "AVGO",
@@ -111,7 +139,11 @@
       "week52_low": 288.98,
       "drawdown": -28.04,
       "rally": 22.84,
-      "ytd_change": 2.57
+      "ytd_change": 2.57,
+      "range2_high": 493.32,
+      "range2_low": 136.53,
+      "range3_high": 493.32,
+      "range3_low": 77.87
     },
     {
       "ticker": "TSM",
@@ -125,7 +157,11 @@
       "week52_low": 263.04,
       "drawdown": -6.55,
       "rally": 69.77,
-      "ytd_change": 46.95
+      "ytd_change": 46.95,
+      "range2_high": 477.89,
+      "range2_low": 128.87,
+      "range3_high": 477.89,
+      "range3_low": 75.16
     },
     {
       "ticker": "SKHY",
@@ -139,7 +175,11 @@
       "week52_low": 124.8,
       "drawdown": -5.3,
       "rally": 51.67,
-      "ytd_change": null
+      "ytd_change": null,
+      "range2_high": null,
+      "range2_low": null,
+      "range3_high": null,
+      "range3_low": null
     },
     {
       "ticker": "PDD",
@@ -153,7 +193,11 @@
       "week52_low": 71.94,
       "drawdown": -43.19,
       "rally": 10.09,
-      "ytd_change": -30.15
+      "ytd_change": -30.15,
+      "range2_high": 155.67,
+      "range2_low": 71.94,
+      "range3_high": 164.69,
+      "range3_low": 71.94
     },
     {
       "ticker": "SPCX",
@@ -167,7 +211,11 @@
       "week52_low": 104.83,
       "drawdown": -34.25,
       "rally": 41.52,
-      "ytd_change": null
+      "ytd_change": null,
+      "range2_high": null,
+      "range2_low": null,
+      "range3_high": null,
+      "range3_low": null
     },
     {
       "ticker": "BRK.B",
@@ -181,7 +229,11 @@
       "week52_low": 464.01,
       "drawdown": -5.68,
       "rally": 9.3,
-      "ytd_change": 0.9
+      "ytd_change": 0.9,
+      "range2_high": 542.07,
+      "range2_low": 437.9,
+      "range3_high": 542.07,
+      "range3_low": 330.58
     },
     {
       "ticker": "KO",
@@ -195,7 +247,11 @@
       "week52_low": 63.66,
       "drawdown": -4.19,
       "rally": 38.38,
-      "ytd_change": 26.0
+      "ytd_change": 26.0,
+      "range2_high": 91.94,
+      "range2_low": 57.76,
+      "range3_high": 91.94,
+      "range3_low": 47.29
     },
     {
       "ticker": "MCD",
@@ -209,7 +265,11 @@
       "week52_low": 234.03,
       "drawdown": -28.89,
       "rally": 1.83,
-      "ytd_change": -22.02
+      "ytd_change": -22.02,
+      "range2_high": 335.16,
+      "range2_low": 234.03,
+      "range3_high": 335.16,
+      "range3_low": 228.54
     },
     {
       "ticker": "COST",
@@ -223,7 +283,11 @@
       "week52_low": 840.35,
       "drawdown": -17.36,
       "rally": 7.66,
-      "ytd_change": 4.91
+      "ytd_change": 4.91,
+      "range2_high": 1094.75,
+      "range2_low": 840.35,
+      "range3_high": 1094.75,
+      "range3_low": 519.22
     },
     {
       "ticker": "WMT",
@@ -237,7 +301,11 @@
       "week52_low": 98.06,
       "drawdown": -18.03,
       "rally": 12.72,
-      "ytd_change": -0.79
+      "ytd_change": -0.79,
+      "range2_high": 134.84,
+      "range2_low": 77.58,
+      "range3_high": 134.84,
+      "range3_low": 48.49
     },
     {
       "ticker": "TCOM",
@@ -251,7 +319,11 @@
       "week52_low": 38.04,
       "drawdown": -48.56,
       "rally": 6.81,
-      "ytd_change": -43.5
+      "ytd_change": -43.5,
+      "range2_high": 78.99,
+      "range2_low": 38.04,
+      "range3_high": 78.99,
+      "range3_low": 31.25
     },
     {
       "ticker": "BKNG",
@@ -265,7 +337,11 @@
       "week52_low": 149.41,
       "drawdown": -30.07,
       "rally": 4.34,
-      "ytd_change": -97.09
+      "ytd_change": -97.09,
+      "range2_high": 231.06,
+      "range2_low": 149.41,
+      "range3_high": 231.06,
+      "range3_low": 106.79
     },
     {
       "ticker": "EXPE",
@@ -279,7 +355,11 @@
       "week52_low": 184.29,
       "drawdown": -24.15,
       "rally": 40.56,
-      "ytd_change": -8.57
+      "ytd_change": -8.57,
+      "range2_high": 341.52,
+      "range2_low": 128.5,
+      "range3_high": 341.52,
+      "range3_low": 91.21
     }
   ]
 }

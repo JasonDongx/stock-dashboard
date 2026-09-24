@@ -1,6 +1,7 @@
 // Vercel Serverless Function - 行情数据获取
 // 数据源：腾讯行情接口 qt.gtimg.cn（GBK编码，iconv-lite解码）
 // 52周高低直接读行情字段；YTD用2025年末收盘价常量计算（不依赖K线接口）
+// 近2年/近3年区间：用前复权日K线计算（自动处理拆股/分红除权），上市不足对应年数则不返回
 
 const iconv = require("iconv-lite");
 
@@ -126,6 +127,77 @@ function stripCode(code) {
   return code.replace(/^(sh|sz|hk)/, "");
 }
 
+// ---- 近2年/近3年区间（前复权K线，拆股已换算） ----
+// A股: /appstock/app/fqkline/get；港股: /appstock/app/hkfqkline/get；美股: /appstock/app/usfqkline/get
+// 美股需带交易所后缀：纳斯达克 .OQ，纽交所 .N
+const US_SUFFIX_N = new Set(["TSM", "BRK.B", "KO", "MCD"]); // 纽交所
+
+function usKlineCode(code, ticker) {
+  return code + (US_SUFFIX_N.has(ticker) ? ".N" : ".OQ");
+}
+
+async function fetchKlineRows(code, market, ticker) {
+  let url;
+  if (market === "US") {
+    url = `https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param=${usKlineCode(code, ticker)},day,,,800,qfq`;
+  } else if (market === "港股") {
+    url = `https://web.ifzq.gtimg.cn/appstock/app/hkfqkline/get?param=${code},day,,,800,qfq`;
+  } else {
+    url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${code},day,,,800,qfq`;
+  }
+  // 美股接口偶发返回空，重试一次
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await fetchUrl(url, false, 8000);
+      const data = JSON.parse(raw).data || {};
+      const node = data[code] || data[usKlineCode(code, ticker)] || {};
+      const rows = node.qfqday || node.day || [];
+      if (rows.length) return rows;
+    } catch {
+      /* 重试 */
+    }
+  }
+  return null;
+}
+
+// 从K线计算近2年/3年区间：rows=[date,open,close,high,low,...]，上市不足对应年数返回 null
+function calcRangeStats(rows) {
+  if (!rows || rows.length < 2) return null;
+  const day = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff2 = new Date(now - 730 * day).toISOString().slice(0, 10);
+  const cutoff3 = new Date(now - 1095 * day).toISOString().slice(0, 10);
+  const first = rows[0][0];
+
+  const stats = {};
+  for (const [years, cutoff, hi, lo] of [
+    ["2", cutoff2, "range2_high", "range2_low"],
+    ["3", cutoff3, "range3_high", "range3_low"],
+  ]) {
+    if (first > cutoff) {
+      stats[hi] = null; // 上市不足N年
+      stats[lo] = null;
+      continue;
+    }
+    let h = -Infinity, l = Infinity;
+    for (const r of rows) {
+      if (r[0] < cutoff) continue;
+      const high = parseFloat(r[3]);
+      const low = parseFloat(r[4]);
+      if (!isNaN(high) && high > h) h = high;
+      if (!isNaN(low) && low < l) l = low;
+    }
+    stats[hi] = h === -Infinity ? null : round2(h);
+    stats[lo] = l === Infinity ? null : round2(l);
+  }
+  return stats;
+}
+
+async function fetchRangeStats(code, market, ticker) {
+  const rows = await fetchKlineRows(code, market, ticker);
+  return calcRangeStats(rows) || { range2_high: null, range2_low: null, range3_high: null, range3_low: null };
+}
+
 function buildStock(base, fields, price, peTtm, week52High, week52Low, ytdBase) {
   const prevClose = toNum(fields[4]);
 
@@ -185,6 +257,17 @@ async function fetchAShareData() {
     }
   });
 
+  // 并行拉取近2年/3年区间（前复权K线），失败不影响基础行情
+  await Promise.all(
+    A_STOCKS.map(async (meta, i) => {
+      try {
+        Object.assign(stocks[i], await fetchRangeStats(meta.code, meta.market));
+      } catch {
+        /* 区间数据失败则不展示对应指示条 */
+      }
+    })
+  );
+
   return {
     update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
     stocks,
@@ -225,6 +308,17 @@ async function fetchUsStockData() {
       return { ...base, error: "数据暂缺" };
     }
   });
+
+  // 并行拉取近2年/3年区间（前复权K线），失败不影响基础行情
+  await Promise.all(
+    US_STOCKS.map(async (meta, i) => {
+      try {
+        Object.assign(stocks[i], await fetchRangeStats(meta.code, "US", meta.ticker));
+      } catch {
+        /* 区间数据失败则不展示对应指示条 */
+      }
+    })
+  );
 
   return {
     update_time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),

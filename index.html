@@ -197,6 +197,8 @@
         .metric-value.down { color: var(--down); }
 
         /* Range Bar */
+        .range-section { position: relative; }
+        .range-extra { margin-top: 7px; }
         .range-bar { position: relative; height: 4px; background: var(--border-light); border-radius: 2px; }
 
         .range-fill {
@@ -434,8 +436,33 @@
                 }
 
                 const pos = calcPos(s.price, s.week52_low, s.week52_high);
-                const hasRange = s.week52_low !== null && s.week52_low !== undefined
-                               && s.week52_high !== null && s.week52_high !== undefined;
+                // 指示条：近1年 + 近2年/近3年（上市不足对应年数则不展示）
+                const bars = [];
+                if (s.week52_low !== null && s.week52_low !== undefined
+                    && s.week52_high !== null && s.week52_high !== undefined) {
+                    bars.push({ low: s.week52_low, high: s.week52_high, label: '近1年' });
+                }
+                if (s.range2_low != null && s.range2_high != null) {
+                    bars.push({ low: s.range2_low, high: s.range2_high, label: '近2年' });
+                }
+                if (s.range3_low != null && s.range3_high != null) {
+                    bars.push({ low: s.range3_low, high: s.range3_high, label: '近3年' });
+                }
+
+                const barsHtml = bars.length ? bars.map((b, i) => {
+                    const p = calcPos(s.price, b.low, b.high);
+                    return `<div class="range-section${i === 0 ? '' : ' range-extra'}">
+                        <div class="range-bar">
+                            <div class="range-fill" style="width:100%"></div>
+                            <div class="range-dot" style="left:${p}%"></div>
+                        </div>
+                        <div class="range-labels">
+                            <span class="range-label-text">低 ${fmtNum(b.low)}</span>
+                            <span class="range-label-text center">${b.label}</span>
+                            <span class="range-label-text right">高 ${fmtNum(b.high)}</span>
+                        </div>
+                    </div>`;
+                }).join('') : '';
 
                 return `<div class="stock-row">
                     <div class="stock-main">
@@ -446,15 +473,7 @@
                             <div class="metric"><span class="metric-label">距1年高</span><span class="metric-value ${changeClass(s.drawdown)}">${fmtPct(s.drawdown)}</span></div>
                             <div class="metric"><span class="metric-label">距1年低</span><span class="metric-value ${changeClass(s.rally)}">${fmtPct(s.rally)}</span></div>
                         </div>
-                        ${hasRange ? `<div class="range-bar">
-                            <div class="range-fill" style="width:100%"></div>
-                            <div class="range-dot" style="left:${pos}%"></div>
-                        </div>
-                        <div class="range-labels">
-                            <span class="range-label-text">低 ${fmtNum(s.week52_low)}</span>
-                            <span class="range-label-text center">近1年</span>
-                            <span class="range-label-text right">高 ${fmtNum(s.week52_high)}</span>
-                        </div>` : ''}
+                        ${barsHtml}
                     </div>
                     <div class="stock-side">
                         <div class="stock-price">${fmtNum(s.price)}</div>
