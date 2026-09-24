@@ -102,6 +102,7 @@ def fetch_a_share_data():
         {"code": "hk01810", "name": "小米集团-W", "market": "港股", "currency": "港元"},
         {"code": "hk01364", "name": "古茗", "market": "港股", "currency": "港元"},
         {"code": "hk00981", "name": "中芯国际", "market": "港股", "currency": "港元"},
+        {"code": "hk09633", "name": "农夫山泉", "market": "港股", "currency": "港元"},
     ]
 
     # 获取实时行情

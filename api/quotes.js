@@ -18,6 +18,7 @@ const A_STOCKS = [
   { code: "hk01810", name: "小米集团-W", market: "港股", currency: "港元" },
   { code: "hk01364", name: "古茗", market: "港股", currency: "港元" },
   { code: "hk00981", name: "中芯国际", market: "港股", currency: "港元" },
+  { code: "hk09633", name: "农夫山泉", market: "港股", currency: "港元" },
 ];
 
 // 美股股票列表
@@ -58,6 +59,7 @@ const YE2025_CLOSE = {
   hk01810: 39.30,
   hk01364: 24.78,
   hk00981: 71.45,
+  hk09633: 46.84,
   AAPL: 271.86,
   MSFT: 483.62,
   NVDA: 186.50,
