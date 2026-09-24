@@ -12,6 +12,7 @@ const A_STOCKS = [
   { code: "sh600900", name: "长江电力", market: "A股", currency: "元" },
   { code: "sh601318", name: "中国平安", market: "A股", currency: "元" },
   { code: "sz300750", name: "宁德时代", market: "A股", currency: "元" },
+  { code: "sh688825", name: "长鑫科技", market: "A股", currency: "元" },
   { code: "hk09992", name: "泡泡玛特", market: "港股", currency: "港元" },
   { code: "hk00700", name: "腾讯控股", market: "港股", currency: "港元" },
   { code: "hk01810", name: "小米集团-W", market: "港股", currency: "港元" },
@@ -51,6 +52,7 @@ const YE2025_CLOSE = {
   sh600900: 27.19,
   sh601318: 68.40,
   sz300750: 358.95,
+  sh688825: null, // 2026-07-27上市
   hk09992: 187.70,
   hk00700: 599.00,
   hk01810: 39.30,
